@@ -1,0 +1,62 @@
+@startuml
+autonumber
+
+actor Покупатель as Buyer
+participant "Корзина (Система)" as Cart
+participant "Система оплаты" as Payment
+participant "Склад" as Warehouse
+
+== Оформление заказа и оплата ==
+
+Buyer -> Cart: Нажать "Оформить заказ"
+activate Cart
+
+Cart -> Warehouse: Запросить проверку наличия товаров()
+activate Warehouse
+
+alt Товары есть в наличии
+    Warehouse --> Cart: Подтверждение наличия [количество >= заказанного]
+    deactivate Warehouse
+    
+    Cart -> Warehouse: Зарезервировать товары на 15 минут()
+    activate Warehouse
+    Warehouse --> Cart: Товары успешно зарезервированы
+    deactivate Warehouse
+    
+    Cart -> Buyer: Отобразить форму оплаты
+    
+    Buyer -> Payment: Ввести данные карты и подтвердить оплату()
+    activate Payment
+    
+    alt Оплата прошла успешно
+        Payment --> Cart: Подтверждение транзакции (Success)
+        deactivate Payment
+        
+        Cart -> Warehouse: Подтвердить заказ и передать в сборку()
+        activate Warehouse
+        Warehouse --> Cart: Заказ принят в работу
+        deactivate Warehouse
+        
+        Cart --> Buyer: Уведомление: "Заказ успешно оформлен и передан на склад"
+        
+    else Оплата отклонена (недостаточно средств / ошибка)
+        Payment --> Cart: Ошибка оплаты (Declined)
+        deactivate Payment
+        
+        Cart -> Warehouse: Снять резерв с товаров()
+        activate Warehouse
+        Warehouse --> Cart: Резерв снят
+        deactivate Warehouse
+        
+        Cart --> Buyer: Уведомление: "Оплата не прошла, попробуйте снова"
+    end
+    
+else Товаров нет в наличии
+    Warehouse --> Cart: Отказ: товар отсутствует или количество недостаточно
+    deactivate Warehouse
+    
+    Cart --> Buyer: Уведомление: "К сожалению, некоторые товары закончились"
+end
+
+deactivate Cart
+@enduml
